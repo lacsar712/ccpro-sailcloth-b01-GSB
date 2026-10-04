@@ -3,9 +3,16 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import ClothRoll, DipRun, Loft
-from .serializers import ClothRollSerializer, DipRunSerializer, LoftSerializer
+from .models import ClothRoll, DipRun, GsmBandSettings, Loft
+from .permissions import IsAdminForWrite
+from .serializers import (
+    ClothRollSerializer,
+    DipRunSerializer,
+    GsmBandSettingsSerializer,
+    LoftSerializer,
+)
 
 
 class LoftViewSet(viewsets.ModelViewSet):
@@ -37,6 +44,34 @@ class DipRunViewSet(viewsets.ModelViewSet):
         if roll_id:
             qs = qs.filter(roll_id=roll_id)
         return qs
+
+
+class GsmBandSettingsView(APIView):
+    """
+    克重色带分界：任何登录用户可读；仅管理员可写。
+    全台只有一版（singleton），后写成功的一版覆盖先写的；
+    写分界只动这一行，不触碰任何布卷。
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminForWrite]
+
+    def get(self, request):
+        return Response(GsmBandSettingsSerializer(GsmBandSettings.current()).data)
+
+    def put(self, request):
+        return self._save(request, partial=False)
+
+    def patch(self, request):
+        return self._save(request, partial=True)
+
+    def _save(self, request, partial):
+        settings = GsmBandSettings.current()
+        serializer = GsmBandSettingsSerializer(
+            settings, data=request.data, partial=partial
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(updated_by=request.user.username)
+        return Response(serializer.data)
 
 
 @api_view(["GET"])

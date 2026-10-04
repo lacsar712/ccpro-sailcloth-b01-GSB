@@ -5,12 +5,21 @@ import api from '../api'
 const lofts = ref([])
 const rolls = ref([])
 const dips = ref([])
+const bands = ref({ lightMax: 400, heavyMin: 440 })
 const error = ref('')
 const panelError = ref('')
 const selectedId = ref(null)
 const panelBusy = ref(false)
 
 const statusLabel = { raw: '原布', dipping: '浸渍中', cured: '已固化' }
+const bandLabel = { light: '轻档', medium: '中档', heavy: '重档' }
+
+function bandOf(roll) {
+  const gsm = roll.fabricWeightGsm
+  if (gsm <= bands.value.lightMax) return 'light'
+  if (gsm >= bands.value.heavyMin) return 'heavy'
+  return 'medium'
+}
 
 const dipForm = reactive({
   startedAt: '',
@@ -44,14 +53,16 @@ const recentFeed = computed(() => dips.value.slice(0, 12))
 async function load() {
   error.value = ''
   try {
-    const [l, r, d] = await Promise.all([
+    const [l, r, d, b] = await Promise.all([
       api.get('/lofts/'),
       api.get('/rolls/'),
       api.get('/dips/'),
+      api.get('/gsm-bands/'),
     ])
     lofts.value = l.data.results || l.data
     rolls.value = r.data.results || r.data
     dips.value = d.data.results || d.data
+    bands.value = { lightMax: b.data.lightMax, heavyMin: b.data.heavyMin }
   } catch {
     error.value = '晾晒架加载失败'
   }
@@ -133,7 +144,7 @@ onMounted(load)
     <header class="rack-head">
       <div>
         <h1>帆布间晾晒架</h1>
-        <p class="sub">按帆布间挂卷；点选布卷登记浸渍或标固化。固化规则：最近浸渍时长 ≥ 12 小时。</p>
+        <p class="sub">按帆布间挂卷；挂签底色随克重色带分界（轻 ≤ {{ bands.lightMax }} / 重 ≥ {{ bands.heavyMin }} gsm）。点选布卷登记浸渍或标固化。</p>
       </div>
       <button class="btn secondary" type="button" @click="load">刷新架面</button>
     </header>
@@ -163,11 +174,11 @@ onMounted(load)
             @click="openRoll(roll)"
           >
             <span class="peg" aria-hidden="true" />
-            <span class="hang-tag" :class="'tag-' + roll.status">
+            <span class="hang-tag" :class="'band-' + bandOf(roll)">
               {{ statusLabel[roll.status] || roll.status }}
             </span>
             <span class="chip-code">{{ roll.rollCode }}</span>
-            <span class="chip-gsm">{{ roll.fabricWeightGsm }} gsm</span>
+            <span class="chip-gsm">{{ roll.fabricWeightGsm }} gsm · {{ bandLabel[bandOf(roll)] }}</span>
           </button>
           <p v-if="!group.rolls.length" class="empty-bay">此间暂无布卷</p>
         </div>
@@ -205,10 +216,10 @@ onMounted(load)
       </header>
 
       <div class="drawer-status">
-        <span class="hang-tag" :class="'tag-' + selected.status">
+        <span class="hang-tag" :class="'band-' + bandOf(selected)">
           {{ statusLabel[selected.status] }}
         </span>
-        <span class="hint">{{ selected.fabricWeightGsm }} gsm</span>
+        <span class="hint">{{ selected.fabricWeightGsm }} gsm · {{ bandLabel[bandOf(selected)] }}</span>
       </div>
       <p v-if="selected.notes" class="hint">{{ selected.notes }}</p>
       <p v-if="panelError" class="error">{{ panelError }}</p>

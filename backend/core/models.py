@@ -45,6 +45,37 @@ class ClothRoll(models.Model):
         return f"{self.loft.name}/{self.roll_code}"
 
 
+class GsmBandSettings(models.Model):
+    """
+    克重色带分界（全台唯一一版，singleton）。
+
+    挂签底色判定（按布卷现行克重 fabric_weight_gsm）：
+      gsm <= light_max_gsm  → 轻档
+      gsm >= heavy_min_gsm  → 重档
+      其余                  → 中档
+    只保存分界数字；改分界不触碰任何布卷。
+    """
+
+    SINGLETON_ID = 1
+
+    light_max_gsm = models.PositiveIntegerField(default=400)
+    heavy_min_gsm = models.PositiveIntegerField(default=440)
+    updated_by = models.CharField(max_length=150, blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "克重色带分界"
+
+    def __str__(self):
+        return f"轻档≤{self.light_max_gsm} / 重档≥{self.heavy_min_gsm}"
+
+    @classmethod
+    def current(cls) -> "GsmBandSettings":
+        """取现行唯一一版分界；不存在时用出厂默认落库。"""
+        obj, _ = cls.objects.get_or_create(pk=cls.SINGLETON_ID)
+        return obj
+
+
 class DipRun(models.Model):
     roll = models.ForeignKey(ClothRoll, on_delete=models.CASCADE, related_name="dip_runs")
     started_at = models.DateTimeField()

@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from core.models import ClothRoll, DipRun, Loft
+from core.models import ClothRoll, DipRun, GsmBandSettings, Loft
 
 User = get_user_model()
 
@@ -41,6 +41,15 @@ class Command(BaseCommand):
         worker.role = User.ROLE_WORKER
         worker.save()
         self.stdout.write(self.style.SUCCESS(f"worker {'created' if created else 'updated'}"))
+
+        # 克重色带分界：仅当库里还没有任何一版时写入出厂默认；
+        # 已存在的分界（管理员改过的）绝不被种子覆盖。
+        _, bands_created = GsmBandSettings.objects.get_or_create(
+            pk=GsmBandSettings.SINGLETON_ID
+        )
+        self.stdout.write(
+            f"克重色带分界 {'created (factory defaults)' if bands_created else 'exists, kept'}"
+        )
 
         if Loft.objects.exists():
             self.stdout.write("业务数据已存在，跳过业务种子写入。")

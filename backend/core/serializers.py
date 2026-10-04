@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import ClothRoll, DipRun, Loft
+from .models import ClothRoll, DipRun, GsmBandSettings, Loft
 from .rules import can_mark_roll_cured
 
 
@@ -60,6 +60,35 @@ class ClothRollSerializer(serializers.ModelSerializer):
             ok, msg = can_mark_roll_cured(roll)
             if not ok:
                 raise serializers.ValidationError({"status": msg})
+        return attrs
+
+
+class GsmBandSettingsSerializer(serializers.ModelSerializer):
+    lightMax = serializers.IntegerField(source="light_max_gsm", min_value=1)
+    heavyMin = serializers.IntegerField(source="heavy_min_gsm", min_value=1)
+    updatedBy = serializers.CharField(source="updated_by", read_only=True)
+    updatedAt = serializers.DateTimeField(source="updated_at", read_only=True)
+
+    class Meta:
+        model = GsmBandSettings
+        fields = ("lightMax", "heavyMin", "updatedBy", "updatedAt")
+
+    def validate(self, attrs):
+        light_max = attrs.get("light_max_gsm")
+        heavy_min = attrs.get("heavy_min_gsm")
+        if self.instance is not None:
+            if light_max is None:
+                light_max = self.instance.light_max_gsm
+            if heavy_min is None:
+                heavy_min = self.instance.heavy_min_gsm
+        if (
+            light_max is not None
+            and heavy_min is not None
+            and light_max >= heavy_min
+        ):
+            raise serializers.ValidationError(
+                {"heavyMin": "轻档上限必须小于重档下限"}
+            )
         return attrs
 
 
