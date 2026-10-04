@@ -299,9 +299,28 @@ th { background: var(--canvas-deep); color: var(--navy); }
   margin-bottom: 8px;
   transform: rotate(-2deg);
 }
-.tag-raw { background: #e8eef5; color: #16324f; }
-.tag-dipping { background: #f3e6c4; color: #6b4f12; }
-.tag-cured { background: #d9ebe1; color: #2f6f4e; }
+/* 挂签底色 = 克重色带（轻/中/重），与状态无关 */
+.band-light { background: #dcebf7; color: #1f4e79; }
+.band-medium { background: #f3e6c4; color: #6b4f12; }
+.band-heavy { background: #f0d3c8; color: #8a3a12; }
+.band-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 18px;
+}
+.band-legend .legend-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.band-legend .hang-tag { transform: none; margin-bottom: 0; }
+.legend-link {
+  color: var(--navy-mid);
+  font-size: 0.9rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .chip-raw { background: linear-gradient(180deg, #f7f9fc, #fffdf8); }
 .chip-dipping { background: linear-gradient(180deg, #faf4e4, #fffdf8); }
 .chip-cured { background: linear-gradient(180deg, #eef6f1, #fffdf8); }
@@ -401,6 +420,45 @@ th { background: var(--canvas-deep); color: var(--navy); }
 }
 .drawer-form label { min-width: 0; }
 .drawer-form input { min-width: 0; width: 100%; }
+
+/* 克重色带专页 */
+.band-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 16px 0 20px;
+}
+.band-card {
+  flex: 1 1 170px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 252, 246, 0.92);
+}
+.band-card .hang-tag { transform: none; margin-bottom: 0; }
+.band-card .range {
+  display: block;
+  margin-top: 10px;
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 1.05rem;
+}
+.band-card .desc {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 4px 0 0;
+}
+.bands-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+.settings-meta {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 12px 0 0;
+}
 
 @media (max-width: 800px) {
   .layout { grid-template-columns: 1fr; }

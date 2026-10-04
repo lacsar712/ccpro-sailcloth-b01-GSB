@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -58,3 +59,58 @@ class DipRun(models.Model):
 
     def __str__(self):
         return f"Dip@{self.roll_id} {self.started_at}"
+
+
+class GsmBandSettings(models.Model):
+    """克重色带分界（全台唯一一行；后写成功的一版覆盖先写）。
+
+    分档规则（整数克重 gsm）：
+      gsm <= light_max  → 轻档 light
+      gsm >= heavy_min  → 重档 heavy
+      其余              → 中档 medium
+    """
+
+    BAND_LIGHT = "light"
+    BAND_MEDIUM = "medium"
+    BAND_HEAVY = "heavy"
+
+    DEFAULT_LIGHT_MAX = 400
+    DEFAULT_HEAVY_MIN = 440
+
+    light_max = models.PositiveIntegerField(default=DEFAULT_LIGHT_MAX)
+    heavy_min = models.PositiveIntegerField(default=DEFAULT_HEAVY_MIN)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "克重色带分界"
+        verbose_name_plural = "克重色带分界"
+
+    def __str__(self):
+        return f"轻≤{self.light_max} / 重≥{self.heavy_min}"
+
+    @classmethod
+    def get_solo(cls):
+        """取唯一设置行；不存在时按出厂默认创建。"""
+        obj, _ = cls.objects.get_or_create(
+            pk=1,
+            defaults={
+                "light_max": cls.DEFAULT_LIGHT_MAX,
+                "heavy_min": cls.DEFAULT_HEAVY_MIN,
+            },
+        )
+        return obj
+
+    def band_for(self, gsm) -> str:
+        gsm = int(gsm)
+        if gsm <= self.light_max:
+            return self.BAND_LIGHT
+        if gsm >= self.heavy_min:
+            return self.BAND_HEAVY
+        return self.BAND_MEDIUM

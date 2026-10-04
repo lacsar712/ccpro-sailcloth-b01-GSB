@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from core.models import ClothRoll, DipRun, Loft
+from core.models import ClothRoll, DipRun, GsmBandSettings, Loft
 
 User = get_user_model()
 
@@ -41,6 +41,9 @@ class Command(BaseCommand):
         worker.role = User.ROLE_WORKER
         worker.save()
         self.stdout.write(self.style.SUCCESS(f"worker {'created' if created else 'updated'}"))
+
+        GsmBandSettings.get_solo()
+        self.stdout.write("克重色带分界已就绪（默认 轻≤400 / 重≥440）。")
 
         if Loft.objects.exists():
             self.stdout.write("业务数据已存在，跳过业务种子写入。")

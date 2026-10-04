@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import ClothRoll, DipRun, Loft
+from .models import ClothRoll, DipRun, GsmBandSettings, Loft
 from .rules import can_mark_roll_cured
 
 
@@ -93,3 +93,30 @@ class DipRunSerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = ("id", "rollCode", "loftName", "created_at")
+
+
+class GsmBandSettingsSerializer(serializers.ModelSerializer):
+    """克重色带分界：轻档上限 / 重档下限，均为整数克重。"""
+
+    lightMax = serializers.IntegerField(source="light_max", min_value=1)
+    heavyMin = serializers.IntegerField(source="heavy_min", min_value=1)
+    updatedAt = serializers.DateTimeField(source="updated_at", read_only=True)
+    updatedBy = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GsmBandSettings
+        fields = ("lightMax", "heavyMin", "updatedAt", "updatedBy")
+
+    def get_updatedBy(self, obj):
+        return obj.updated_by.username if obj.updated_by_id else None
+
+    def validate(self, attrs):
+        light = attrs.get("light_max")
+        heavy = attrs.get("heavy_min")
+        if light is None and self.instance is not None:
+            light = self.instance.light_max
+        if heavy is None and self.instance is not None:
+            heavy = self.instance.heavy_min
+        if light is not None and heavy is not None and light >= heavy:
+            raise serializers.ValidationError("轻档上限必须小于重档下限")
+        return attrs

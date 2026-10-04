@@ -1,6 +1,9 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import api from '../api'
+import { useBandStore } from '../stores/bands'
+
+const bands = useBandStore()
 
 const lofts = ref([])
 const rolls = ref([])
@@ -11,6 +14,11 @@ const selectedId = ref(null)
 const panelBusy = ref(false)
 
 const statusLabel = { raw: '原布', dipping: '浸渍中', cured: '已固化' }
+const bandLabel = { light: '轻档', medium: '中档', heavy: '重档' }
+
+function bandClass(roll) {
+  return 'band-' + bands.bandOf(roll.fabricWeightGsm)
+}
 
 const dipForm = reactive({
   startedAt: '',
@@ -48,6 +56,7 @@ async function load() {
       api.get('/lofts/'),
       api.get('/rolls/'),
       api.get('/dips/'),
+      bands.load(),
     ])
     lofts.value = l.data.results || l.data
     rolls.value = r.data.results || r.data
@@ -140,6 +149,14 @@ onMounted(load)
 
     <p v-if="error" class="error">{{ error }}</p>
 
+    <div v-if="bands.loaded" class="band-legend">
+      <span class="legend-label">挂签底色按克重色带：</span>
+      <span class="hang-tag band-light">轻档 ≤ {{ bands.lightMax }} gsm</span>
+      <span class="hang-tag band-medium">中档 {{ bands.mediumRange }} gsm</span>
+      <span class="hang-tag band-heavy">重档 ≥ {{ bands.heavyMin }} gsm</span>
+      <router-link class="legend-link" to="/gsm-bands">克重色带分界 →</router-link>
+    </div>
+
     <div class="rack-floor">
       <section
         v-for="group in rollsByLoft"
@@ -163,7 +180,11 @@ onMounted(load)
             @click="openRoll(roll)"
           >
             <span class="peg" aria-hidden="true" />
-            <span class="hang-tag" :class="'tag-' + roll.status">
+            <span
+              class="hang-tag"
+              :class="bandClass(roll)"
+              :title="bandLabel[bands.bandOf(roll.fabricWeightGsm)]"
+            >
               {{ statusLabel[roll.status] || roll.status }}
             </span>
             <span class="chip-code">{{ roll.rollCode }}</span>
@@ -205,10 +226,13 @@ onMounted(load)
       </header>
 
       <div class="drawer-status">
-        <span class="hang-tag" :class="'tag-' + selected.status">
+        <span class="hang-tag" :class="bandClass(selected)">
           {{ statusLabel[selected.status] }}
         </span>
-        <span class="hint">{{ selected.fabricWeightGsm }} gsm</span>
+        <span class="hint">
+          {{ selected.fabricWeightGsm }} gsm ·
+          {{ bandLabel[bands.bandOf(selected.fabricWeightGsm)] }}
+        </span>
       </div>
       <p v-if="selected.notes" class="hint">{{ selected.notes }}</p>
       <p v-if="panelError" class="error">{{ panelError }}</p>
